@@ -81,9 +81,9 @@ Zdual   = Zglobal + sigmoid(γ) · ΔZnode
 
 代码：[DualScaleCompatibilityAdapter.py](../ignn/modules/DualScaleCompatibilityAdapter.py)
 
-## 5. RS-DCFT：validation-only 可靠性选择
+## 5. RS-DCFT：第一版 validation-only 可靠性选择
 
-最终模型同时训练全局兼容头和双尺度兼容头，并使用同一条规则：
+这一中间版同时训练全局兼容头和双尺度兼容头，并使用同一条规则：
 
 ```text
 if validation_accuracy(dual) >= validation_accuracy(global):
@@ -94,7 +94,7 @@ else:
 
 该规则不接收数据集名称，不包含数据集专属阈值，也不读取 test 标签。选择结果作为 buffer 写入 state dict，可在 test 和部署阶段精确恢复。
 
-最终宏平均配对 test 增益为 **+0.5298 pp**。八个数据集中七个平均为正；Chameleon 为 `-0.225 pp`，因此结论限定为“跨八个基准的平均提升”。
+普通宏平均配对 test 增益为 **+0.5298 pp**，但删除最高的 Squirrel (`+3.8202`) 和最低的 Chameleon (`-0.2247`) 后只有 **+0.1071 pp**。这说明早期宏平均被 Squirrel 明显放大，后续主结论改用去极值平均。
 
 代码：[CompatibilityReliabilitySelector.py](../ignn/modules/CompatibilityReliabilitySelector.py)
 
@@ -110,10 +110,53 @@ else:
 
 逐 split 的 split hash、validation accuracy、选择头和 test accuracy 均保存在 [最终 JSON](../experiments/reliability_selected_compatibility_10splits.json) 中。
 
-## 7. 结论边界
+## 7. 第一版的结论边界（已被后续实验替代）
 
-可以陈述：
+在当时的普通宏平均口径下可以陈述：
 
 > 在固定 SFD backbone 和统一的 validation-only 可靠性规则下，RS-DCFT 在八个图节点分类基准、每个十个固定划分上取得 +0.5298 个百分点的宏平均配对 test 增益，七个数据集的平均结果为正。
 
 不应陈述所有数据集均提升。主要增益来自 Squirrel，其他数据集多数为弱正增益。
+
+## 8. 指标修正与节点分支重构
+
+第一版结果表明，不去极值的宏平均会被 Squirrel 主导。因此最终实验先计算每个数据集的 10-split 平均配对增益，再删除最高和最低数据集，对剩余六个求平均。
+
+早期节点分支直接生成任意类别残差，与分类器职责重叠。最终版将它改为兼容证据 `Q` 上的有界强度偏差：
+
+```text
+r_i = [B_i || Q_i || |Q_i-B_i| || B_i⊙Q_i]
+u_i = tanh(MLP(r_i))
+δ_i = λ/2 * (u_i - mean_nodes(u))
+Zglobal = Z + sQ
+Zlocal  = Z + δ_i⊙Q_i
+Zdual   = Z + (s+δ_i)⊙Q_i
+```
+
+`δ_i` 是 node-wise、class-wise 的 signed coefficient，逐通道在所有节点上均值为零，幅度限制在 `[-λ,λ]`。全局分支因此负责平均兼容强度，局部分支只学习节点偏差。局部 MLP 末层零初始化，训练初始时 `dual` 严格退化为 `global`。
+
+代码：[EvidenceResidualDualScaleAdapter.py](../ignn/modules/EvidenceResidualDualScaleAdapter.py)
+
+## 9. RC-DSCC：可靠性控制的双尺度修正
+
+最终系统用同一条 validation-only 规则在 `global` / `local` / `dual` 三个状态中选择，平局优先 `global`，其次 `local`，最后 `dual`。选择器不接收数据集名称，不读取 test 标签。
+
+严格消融的去极值配对增益为：
+
+- classifier-only：`+0.0060 pp`；
+- global-only：`+0.0815 pp`；
+- local-only：`+0.0169 pp`；
+- 固定 global+local：`+0.0806 pp`；
+- RC-DSCC：`+0.1050 pp`。
+
+全局修正是主要稳定收益来源。局部修正单独使用较弱，必须与可靠性控制一起使用。最终 8 个数据集的平均增益均为正，去极值指标不再由 Squirrel 决定。
+
+完整公式、消融和逐数据集结果见 [DUAL_SCALE_METHOD_AND_ABLATION.md](DUAL_SCALE_METHOD_AND_ABLATION.md)，最终逐 split 记录见 [reliability_controlled_dual_scale_10splits.json](../experiments/reliability_controlled_dual_scale_10splits.json)。
+
+## 10. 最终结论边界
+
+可以陈述：
+
+> 在固定 SFD backbone 和统一 validation-only 尺度选择规则下，RC-DSCC 在八个图节点分类基准、每个十个固定划分上取得 `+0.1050 pp` 的去极值平均配对 test 增益，八个数据集的平均结果均为正。
+
+不应陈述所有 split 均提升。Actor、Amazon-Ratings、Photo 和 PubMed 的增益很弱，报告结果时必须同时给出普通宏平均和去极值平均。
