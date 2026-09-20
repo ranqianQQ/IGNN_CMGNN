@@ -104,7 +104,7 @@ class EvidenceResidualDualScaleAdapter(nn.Module):
             "evidence": evidence,
         }
 
-    def forward(self, logits, adjacency, labels, train_mask, mode="dual"):
+    def forward(self, logits, adjacency, labels, train_mask, mode="global"):
         if mode not in self.MODES:
             raise ValueError(f"Unknown correction mode: {mode}")
         return self.components(logits, adjacency, labels, train_mask)[mode]
