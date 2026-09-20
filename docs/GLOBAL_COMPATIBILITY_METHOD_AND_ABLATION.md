@@ -12,7 +12,7 @@ IGNN (SN + IN + NR) -> SFD -> classifier -> global compatibility correction
 
 ## 2. 兼容矩阵估计
 
-训练标签记为 `Y_train`，邻接矩阵记为 `A`。兼容矩阵 `C` 描述一类节点与各类别邻居相连的相对频率。实现沿用 CMGNN 的核心估计思想：只用训练标签和图结构构造类别关系，进行平滑与行归一化，避免读取 validation 或 test 标签。
+训练标签记为 `Y_train`，邻接矩阵记为 `A`。兼容矩阵 `C` 描述一类节点与各类别邻居相连的相对频率。实现沿用 CMGNN 的核心估计思想：未标注节点使用模型软预测，训练节点使用真实 one-hot 标签，再结合图结构、置信度和度权重估计类别关系；整个过程不读取 validation 或 test 标签。
 
 主干输出 logits `Z`，令：
 

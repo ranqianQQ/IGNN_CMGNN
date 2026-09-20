@@ -18,7 +18,7 @@ Graph (X, A)
     -> prediction
 ```
 
-设 `P = softmax(Z)`。训练节点使用真实 one-hot 标签替换预测概率，得到 `P_seed`；兼容矩阵 `C` 由训练标签和图结构估计。修正过程为：
+设 `P = softmax(Z)`。训练节点使用真实 one-hot 标签替换预测概率，得到 `P_seed`；兼容矩阵 `C` 由模型软预测、训练标签和图结构估计，不读取 validation 或 test 标签。修正过程为：
 
 ```text
 E = normalize(A P_seed C^T)
