@@ -39,26 +39,30 @@ Z_out = Z + s Q
 - 每个 split 只按 validation accuracy 选择 checkpoint，test 只用于最终报告。
 - 主汇总先计算每个数据集的 10-split 配对增益，再删除最高和最低的数据集增益，最后对其余 6 个数据集求平均。
 
-## 10-split 结果
+## 10-split 最终结果
 
-| Dataset | SFD mean±std | SFD + GCC mean±std | Paired gain (pp) | W/T/L |
-|---|---:|---:|---:|---:|
-| Chameleon | 49.045±4.633 | 48.933±4.770 | -0.112±0.443 | 2/4/4 |
-| Actor | 38.447±1.028 | 38.507±0.958 | +0.059±0.358 | 6/1/3 |
-| PubMed | 90.198±0.504 | 90.304±0.558 | +0.106±0.157 | 6/1/3 |
-| Roman-Empire | 90.982±0.357 | 91.090±0.409 | +0.108±0.199 | 7/0/3 |
-| Squirrel | 38.921±1.930 | 40.764±1.732 | +1.843±0.928 | 10/0/0 |
-| Photo | 95.575±0.327 | 95.686±0.376 | +0.111±0.127 | 7/2/1 |
-| Amazon-Ratings | 53.146±1.025 | 53.164±1.036 | +0.018±0.144 | 5/1/4 |
-| WikiCS | 86.087±0.434 | 86.173±0.469 | +0.085±0.045 | 9/1/0 |
+主比较是完整模型 `SFD + GCC` 相对官方 IGNN。表中 `±` 为 10 个 split 的样本标准差，配对增益按每个 split 的 `最终模型 − 官方 IGNN` 计算。
 
-- 8 数据集宏平均配对增益：`+0.2774 pp`。
-- 去掉最高的 Squirrel 和最低的 Chameleon 后：`+0.0815 pp`。
-- 7/8 个数据集的平均结果为正；Chameleon 下降。
+| Dataset | 官方 IGNN | SFD | SFD + GCC | 总配对增益 (pp) | W/T/L |
+|---|---:|---:|---:|---:|---:|
+| Chameleon | 48.202±3.790 | 49.045±4.884 | 48.933±4.770 | +0.730±3.112 | 6/0/4 |
+| Actor | 38.289±1.254 | 38.447±1.084 | 38.507±0.958 | +0.217±0.890 | 6/0/4 |
+| PubMed | 90.213±0.572 | 90.198±0.531 | 90.304±0.558 | +0.091±0.361 | 6/0/4 |
+| Roman-Empire | 90.940±0.711 | 90.982±0.376 | 91.090±0.409 | +0.150±0.648 | 5/0/5 |
+| Squirrel | 38.742±2.140 | 38.921±2.034 | 40.764±1.732 | +2.022±1.919 | 9/0/1 |
+| Photo | 95.490±0.419 | 95.575±0.345 | 95.686±0.376 | +0.196±0.195 | 8/2/0 |
+| Amazon-Ratings | 53.376±1.012 | 53.146±1.081 | 53.164±1.036 | -0.212±0.397 | 3/0/7 |
+| WikiCS | 86.245±0.576 | 86.087±0.457 | 86.173±0.469 | -0.073±0.332 | 4/2/4 |
 
-结果表明固定全局兼容修正提供了小幅、较广泛的正增益，但没有达到“去极值后平均提升 0.5 pp”，因此仓库不把它表述为普遍或显著提升。
+- 完整模型相对官方 IGNN 的宏平均配对增益：`+0.3903 pp`。
+- 去掉最高的 Squirrel 和最低的 Amazon-Ratings 后：`+0.2187 pp`。
+- 6/8 个数据集的平均结果为正。
 
-## 消融
+结果表明完整模型有总体正信号，但仍没有达到“去极值后平均提升 0.5 pp”，也不能表述为所有数据集普遍提升。
+
+## GCC 增量消融
+
+下表全部以同一组 SFD checkpoint 为基线，因此衡量的是兼容矩阵阶段的额外贡献，不是完整模型相对官方 IGNN 的总增益。
 
 | 修正方式 | 宏平均增益 (pp) | 去极值增益 (pp) | 最终采用 |
 |---|---:|---:|---:|
@@ -77,6 +81,7 @@ Z_out = Z + s Q
 | `ignn/modules/compatibility_propagation.py` | CMGNN 风格兼容矩阵估计 |
 | `ignn/modules/EvidenceResidualDualScaleAdapter.py` | 全局修正实现及局部/双尺度消融 |
 | `scripts/run_evidence_residual_ablation.py` | 统一 validation 筛选和 10-split 消融 |
+| `scripts/summarize_final_model.py` | 按 split hash 配对并汇总完整模型相对官方 IGNN 的结果 |
 | `experiments/evidence_residual_ablation_10splits.json` | 逐 split 原始结果、验证指标与测试指标 |
 
 ## 复现
@@ -92,6 +97,9 @@ python -m scripts.run_evidence_residual_ablation --stage screen
 
 # 3. 固定配置后运行 8×10 splits 消融
 python -m scripts.run_evidence_residual_ablation --stage evaluate
+
+# 4. 核对 split hash 并生成完整模型主表
+python -m scripts.summarize_final_model
 ```
 
 ## 测试
