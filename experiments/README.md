@@ -1,19 +1,7 @@
-# 实验结果索引
+# 正式实验文件
 
-## 最终采用
+- `sfd_backbone_10splits.json`：官方 IGNN 与 SFD 在 8 个数据集、10 个固定 split 上的配对结果。
+- `final_global_correction_10splits.json`：从相同 SFD checkpoint 出发训练固定全局兼容修正的逐 split 结果。
+- `sfd_10split_<dataset>_<split>_tuned_sfd.pt`：最终兼容修正复现所需的 SFD warm-start checkpoint。
 
-- `sfd_three_datasets_10splits.json`、`sfd_actor_10splits.json`、`sfd_four_more_10splits.json`：官方 IGNN 与 SFD 的逐 split 配对结果。
-- `evidence_residual_screen.json`：只使用前 3 个固定 split 的 validation 指标，对跨数据集统一候选配置进行一次筛选。
-- `evidence_residual_ablation_10splits.json`：固定 `classwise_h8_bound05` 后的 8 数据集 × 10 splits 完整消融。最终模型读取其中 `global` 模式的结果。
-
-`scripts/summarize_final_model.py` 会先核对上述文件的 dataset、split 和 split hash，再生成 `results/final_summary.csv`。主结果比较完整的 `SFD + global` 与官方 IGNN；GCC 相对 SFD 的数字只作为增量消融。
-
-## 历史对照与否决实验
-
-- `compatibility_finetuning_10splits.json`
-- `compatibility_relation_adapter_10splits.json`
-- `dual_scale_10splits.json`
-- `reliability_controlled_dual_scale_10splits.json`
-- `reliability_selected_compatibility_10splits.json`
-
-这些文件用于记录方法演变和复核旧结论，不定义最终模型。其中 `reliability_*` 文件包含根据 validation 指标在多个预测头之间选择结果的历史实验；该规则已被否决，最终结果和复现流程都不使用它。
+其余调参与失败路线的中间结果已经清理。最终汇总由 `python -m scripts.summarize_final_model` 生成。

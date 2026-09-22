@@ -234,7 +234,8 @@ def parse_ignn_args() -> argparse.Namespace:
         "-RN",
         "--RN",
         type=str,
-        choices=["none", "concat", "attentive", "residual", None],
+        choices=["none", "concat", "spectral_decoupling",
+                 "spectral_decoupling_raw", "attentive", "residual", None],
         default=None,
         help="RN",
     )

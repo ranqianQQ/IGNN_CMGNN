@@ -253,10 +253,12 @@ class IGNNConv(nn.Module):
             )
             if RN == "spectral_decoupling":
                 self.nei_rel_learn = SpectralFeatureDecoupling(
-                    self.nei_rel_learn, self.n_hops, h_feats)
+                    self.nei_rel_learn, self.n_hops, h_feats
+                )
         elif RN == "spectral_decoupling_raw":
             self.nei_rel_learn = SpectralFeatureDecoupling(
-                nn.Identity(), self.n_hops, h_feats)
+                nn.Identity(), self.n_hops, h_feats
+            )
         elif RN in ["residual", "none"]:
             # no nei_rel_learn needed for residual variant
             self.nei_rel_learn = nn.Identity()
@@ -364,7 +366,9 @@ class IGNNConv(nn.Module):
     def get_Ws(self):
         if self.RN in ["spectral_decoupling", "spectral_decoupling_raw"]:
             raise ValueError(
-                "SFD is nonlinear and has no single equivalent W matrix.")
+                "SFD has no single equivalent W matrix; "
+                "the original linear spectral analysis only applies to concat NR."
+            )
         if self.RN in ["residual", "none"]:
             Ws = [self.inceptive_agg[0][1].weight.detach().clone()]
             for i in range(1, len(self.inceptive_agg)):

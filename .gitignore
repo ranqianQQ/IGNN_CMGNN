@@ -188,3 +188,11 @@ docs/rst_tmp
 results/*
 !results/table_pub.csv
 !results/table_our.csv
+!results/final_summary.csv
+
+# Local formal SFD checkpoints are large artifacts; JSON reports remain versionable.
+experiments/*.pt
+
+# Local manuscript exports are kept outside the code release.
+SFD_CGE论文初稿.docx
+SFD_CGE论文初稿.pdf

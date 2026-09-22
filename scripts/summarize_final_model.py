@@ -6,11 +6,6 @@ import statistics
 from pathlib import Path
 
 
-SFD_FILES = (
-    "experiments/sfd_three_datasets_10splits.json",
-    "experiments/sfd_actor_10splits.json",
-    "experiments/sfd_four_more_10splits.json",
-)
 DATASET_ORDER = (
     "chameleon", "actor", "pubmed", "roman-empire",
     "squirrel", "photo", "amazon-ratings", "wikics",
@@ -21,23 +16,22 @@ def mean_std(values):
     return statistics.mean(values), statistics.stdev(values)
 
 
-def load_records(compatibility_path):
+def load_records(backbone_path, compatibility_path):
     official, sfd = {}, {}
-    for file_name in SFD_FILES:
-        payload = json.loads(Path(file_name).read_text(encoding="utf-8"))
-        for record in payload["records"]:
-            key = (record["dataset"], int(record["split"]))
-            item = (100.0 * record["test_accuracy"], record["split_hash"])
-            if record["model"] == "official_ignn":
-                official[key] = item
-            elif record["model"] == "tuned_sfd":
-                sfd[key] = item
+    payload = json.loads(Path(backbone_path).read_text(encoding="utf-8"))
+    for record in payload["records"]:
+        key = (record["dataset"], int(record["split"]))
+        item = (100.0 * record["test_accuracy"], record["split_hash"])
+        if record["model"] == "official_ignn":
+            official[key] = item
+        elif record["model"] == "tuned_sfd":
+            sfd[key] = item
 
     payload = json.loads(Path(compatibility_path).read_text(encoding="utf-8"))
     final = {
         (record["dataset"], int(record["split"])):
         (100.0 * record["test_accuracy"], record["split_hash"])
-        for record in payload["records"] if record["mode"] == "global"
+        for record in payload["records"]
     }
     if not (set(official) == set(sfd) == set(final)):
         raise ValueError("Official IGNN, SFD and final record keys differ")
@@ -87,12 +81,15 @@ def summarize(official, sfd, final):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--backbone", default="experiments/sfd_backbone_10splits.json")
+    parser.add_argument(
         "--compatibility",
-        default="experiments/evidence_residual_ablation_10splits.json")
+        default="experiments/final_global_correction_10splits.json")
     parser.add_argument("--output", default="results/final_summary.csv")
     args = parser.parse_args()
 
-    rows, macro, trimmed = summarize(*load_records(args.compatibility))
+    rows, macro, trimmed = summarize(
+        *load_records(args.backbone, args.compatibility))
     fields = list(rows[0])
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)

@@ -2,7 +2,4 @@
 """
 
 from .IGNNConv import IGNNConv
-from .CompatibilityGuidedFineTuning import CompatibilityGuidedFineTuning
-from .CompatibilityRelationAdapter import CompatibilityRelationAdapter
-from .DualScaleCompatibilityAdapter import DualScaleCompatibilityAdapter
-from .EvidenceResidualDualScaleAdapter import EvidenceResidualDualScaleAdapter
+from .GlobalCompatibilityCorrection import GlobalCompatibilityCorrection
